@@ -20,12 +20,19 @@ let perf = {
         if ( isOnload === true ) { return void 0; }
         let timer = null;
 
+        // interactive:DOM 树解析完成，但是仍在加载子资源，例如图像，样式表和框架
         if ( document.readyState === 'interactive' ) {
           runCheck();
         } else if (document.addEventListener) {
+          // perfData.domReady = timing.domContentLoadedEventStart - timing.navigationStart
+          // performance.timing.domContentLoadedEventStart：发生 DOMContentLoaded 事件的时间，即开始加载网页内资源的时间
+          // performance.timing.domContentLoadedEventEnd：DOMContentLoaded 事件已经发生且执行完所有事件处理程序的时间，网页内资源加载完成的时间
+          // 因为 DOMContentLoaded 是在两个时间中间执行的，无法获取 performance.timing.domContentLoadedEventEnd
+          // 所以只能用 timing.domContentLoadedEventStart 去减 timing.navigationStart
           document.addEventListener('DOMContentLoaded', function () {
             runCheck();
           }, false);
+
         } else if (document.attachEvent) {
           document.attachEvent('onreadystatechange', function () {
             runCheck();
@@ -33,6 +40,8 @@ let perf = {
         }
 
         function runCheck() {
+          // 因为 domInteractive 刚开始的值是 0，需要等到有值时才能去上报，否则时间会是负数
+          // 所以这里需要循环检测
           if ( performance.timing.domInteractive ) {
             clearTimeout(timer);
             callback();
