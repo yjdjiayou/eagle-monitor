@@ -1,3 +1,7 @@
+/**
+ * 静态资源监控
+ */
+
 import {onload} from './util.js';
 
 // 过滤无效数据

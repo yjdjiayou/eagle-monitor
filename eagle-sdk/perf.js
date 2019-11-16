@@ -1,4 +1,7 @@
 // https://developer.mozilla.org/zh-CN/docs/Web/API/PerformanceTiming
+/**
+ * 性能监控
+ */
 
 let perf = {
   init: (cb) => {

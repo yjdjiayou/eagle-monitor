@@ -1,3 +1,6 @@
+/**
+ * 浏览器检查 html 元素时，右键 => Copy => Copy XPath
+ */
 // /html/body/div[2]/ul/li[2]
 
 let getXpath = (element) => {

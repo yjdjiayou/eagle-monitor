@@ -1,7 +1,13 @@
+/**
+ * ajax 请求监控
+ */
+
 let xhrHook = {
+  //TODO 自身 SDK 的请求无需拦截
   init: (cb) => {
     // xhr hook
     let xhr = window.XMLHttpRequest;
+    // 避免用户使用其他的性能监控脚本，只允许使用我们写的脚本，否则会多次监控，没有什么意义
     if (xhr._eagle_flag === true) {
       return void 0;
     }

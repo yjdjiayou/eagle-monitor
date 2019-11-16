@@ -1,3 +1,7 @@
+/**
+ * 用户行为检测
+ */
+
 import getXpath from './util/xpath.js';
 
 export default {

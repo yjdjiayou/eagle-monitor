@@ -5,6 +5,9 @@
 }(this, (function () { 'use strict';
 
 // https://developer.mozilla.org/zh-CN/docs/Web/API/PerformanceTiming
+/**
+ * 性能监控
+ */
 
 var perf = {
   init: function init(cb) {
@@ -27,9 +30,15 @@ var perf = {
         }
         var timer = null;
 
+        // interactive:DOM 树解析完成，但是仍在加载子资源，例如图像，样式表和框架
         if (document.readyState === 'interactive') {
           runCheck();
         } else if (document.addEventListener) {
+          // perfData.domReady = timing.domContentLoadedEventStart - timing.navigationStart
+          // performance.timing.domContentLoadedEventStart：发生 DOMContentLoaded 事件的时间，即开始加载网页内资源的时间
+          // performance.timing.domContentLoadedEventEnd：DOMContentLoaded 事件已经发生且执行完所有事件处理程序的时间，网页内资源加载完成的时间
+          // 因为 DOMContentLoaded 是在两个时间中间执行的，无法获取 performance.timing.domContentLoadedEventEnd
+          // 所以只能用 timing.domContentLoadedEventStart 去减 timing.navigationStart
           document.addEventListener('DOMContentLoaded', function () {
             runCheck();
           }, false);
@@ -40,6 +49,8 @@ var perf = {
         }
 
         function runCheck() {
+          // 因为 domInteractive 刚开始的值是 0，需要等到有值时才能去上报，否则时间会是负数
+          // 所以这里需要循环检测
           if (performance.timing.domInteractive) {
             clearTimeout(timer);
             callback();
@@ -135,6 +146,10 @@ var onload = function onload(cb) {
   window.addEventListener('load', cb);
 };
 
+/**
+ * 静态资源监控
+ */
+
 function filterTime(a, b) {
   return a > 0 && b > 0 && a - b >= 0 ? a - b : undefined;
 }
@@ -195,6 +210,10 @@ var resources = {
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
+/**
+ * 错误上报
+ */
+
 var formatError = function formatError(errObj) {
   var col = errObj.column || errObj.columnNumber; // Safari Firefox
   var row = errObj.line || errObj.lineNumber; // Safari Firefox
@@ -202,25 +221,29 @@ var formatError = function formatError(errObj) {
   var name = errObj.name;
 
   var stack = errObj.stack;
+  // stack 里面的错误信息是最准确的
 
   if (stack) {
+    // urlFirstStack 里面有报错的 url 和位置（行列）
     var matchUrl = stack.match(/https?:\/\/[^\n]+/);
     var urlFirstStack = matchUrl ? matchUrl[0] : '';
     var regUrlCheck = /https?:\/\/(\S)*\.js/;
 
+    // 获取真正的 URL
     var resourceUrl = '';
     if (regUrlCheck.test(urlFirstStack)) {
       resourceUrl = urlFirstStack.match(regUrlCheck)[0];
     }
 
-    var stackCol = null;
-    var stackRow = null;
+    // 获取真正的行列信息
+    var stackRow = null; // 行
+    var stackCol = null; // 列
     var posStack = urlFirstStack.match(/:(\d+):(\d+)/);
     if (posStack && posStack.length >= 3) {
       var _posStack = _slicedToArray(posStack, 3);
 
-      stackCol = _posStack[1];
-      stackRow = _posStack[2];
+      stackRow = _posStack[1];
+      stackCol = _posStack[2];
     }
 
     // TODO formatStack
@@ -250,14 +273,16 @@ var errorCatch = {
           lineNumber = arg[2],
           columnNumber = arg[3],
           errorObj = arg[4];
-      // console.log(arg, 'cuowu');
+      // console.log('window 里原始的错误=>',arg);
 
       var errorInfo = formatError(errorObj);
+      // console.log(JSON.parse(JSON.stringify(errorInfo)));
       errorInfo._errorMessage = errorMessage;
       errorInfo._scriptURI = scriptURI;
       errorInfo._lineNumber = lineNumber;
       errorInfo._columnNumber = columnNumber;
       errorInfo.type = 'onerror';
+      // console.log(JSON.parse(JSON.stringify(errorInfo)));
       cb(errorInfo);
       _originOnerror && _originOnerror.apply(window, arg);
     };
@@ -279,10 +304,16 @@ var errorCatch = {
   }
 };
 
+/**
+ * ajax 请求监控
+ */
+
 var xhrHook = {
+  //TODO 自身 SDK 的请求无需拦截
   init: function init(cb) {
     // xhr hook
     var xhr = window.XMLHttpRequest;
+    // 避免用户使用其他的性能监控脚本，只允许使用我们写的脚本，否则会多次监控，没有什么意义
     if (xhr._eagle_flag === true) {
       return void 0;
     }
@@ -402,6 +433,9 @@ var xhrHook = {
   }
 };
 
+/**
+ * 浏览器检查 html 元素时，右键 => Copy => Copy XPath
+ */
 // /html/body/div[2]/ul/li[2]
 
 var getXpath = function getXpath(element) {
@@ -444,6 +478,10 @@ var getXpath = function getXpath(element) {
 
   return xpath;
 };
+
+/**
+ * 用户行为检测
+ */
 
 var behavior = {
   init: function init(cb) {

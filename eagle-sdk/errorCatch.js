@@ -1,3 +1,7 @@
+/**
+ * 错误上报
+ */
+
 let formatError = (errObj) => {
   let col = errObj.column || errObj.columnNumber; // Safari Firefox
   let row = errObj.line || errObj.lineNumber; // Safari Firefox
@@ -5,21 +9,25 @@ let formatError = (errObj) => {
   let name = errObj.name;
 
   let {stack} = errObj;
+  // stack 里面的错误信息是最准确的
   if (stack) {
+    // urlFirstStack 里面有报错的 url 和位置（行列）
     let matchUrl = stack.match(/https?:\/\/[^\n]+/);
     let urlFirstStack = matchUrl ? matchUrl[0] : '';
     let regUrlCheck = /https?:\/\/(\S)*\.js/;
 
+    // 获取真正的 URL
     let resourceUrl = '';
     if (regUrlCheck.test(urlFirstStack)) {
       resourceUrl = urlFirstStack.match(regUrlCheck)[0];
     }
 
-    let stackCol = null;
-    let stackRow = null;
+    // 获取真正的行列信息
+    let stackRow = null;// 行
+    let stackCol = null;// 列
     let posStack = urlFirstStack.match(/:(\d+):(\d+)/);
     if (posStack && posStack.length >= 3) {
-      [, stackCol, stackRow] = posStack;
+      [, stackRow, stackCol] = posStack;
     }
 
     // TODO formatStack
@@ -41,13 +49,15 @@ let errorCatch = {
     let _originOnerror = window.onerror;
     window.onerror = (...arg) => {
       let [errorMessage, scriptURI, lineNumber, columnNumber, errorObj] = arg;
-      // console.log(arg, 'cuowu');
+      // console.log('window 里原始的错误=>',arg);
       let errorInfo = formatError(errorObj);
+      // console.log(JSON.parse(JSON.stringify(errorInfo)));
       errorInfo._errorMessage = errorMessage;
       errorInfo._scriptURI = scriptURI;
       errorInfo._lineNumber = lineNumber;
       errorInfo._columnNumber = columnNumber;
       errorInfo.type = 'onerror';
+      // console.log(JSON.parse(JSON.stringify(errorInfo)));
       cb(errorInfo);
       _originOnerror && _originOnerror.apply(window, arg);
     };

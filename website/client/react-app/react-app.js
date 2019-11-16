@@ -6,7 +6,6 @@ let AppComponent =  class extends Component {
         super(props);
     }
 
-
     componentDidMount () {
       vue = 'vanilla' + 'react'
     }
